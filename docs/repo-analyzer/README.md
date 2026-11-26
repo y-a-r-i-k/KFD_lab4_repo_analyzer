@@ -9,14 +9,28 @@
 Если путь не существует или указывает на файл, программа печатает ошибку в stderr и завершается с кодом 1
 (без аргументов — код 2).
 
-## Состояние: монолит
+## Модули
 
-Весь код в одном Gradle-модуле:
+```text
+:cli  --implementation-->  :core
+```
 
-- `src/main/kotlin/analyzer/RepoAnalyzer.kt` — обход файлов, подсчёт строк, сортировка;
-- `src/main/kotlin/analyzer/Main.kt` — точка входа, аргументы, вывод, код завершения;
-- `src/test/kotlin/analyzer/RepoAnalyzerTest.kt` — тесты расчётов (оба отчёта, пустой каталог, ошибка пути, пропуск каталогов и ссылок);
-- `src/test/kotlin/analyzer/MainTest.kt` — тесты CLI (текст вывода, коды завершения).
+- `:core` — обход файлов, подсчёт строк, сортировка (`core/src/main/kotlin/analyzer/RepoAnalyzer.kt`).
+  Тесты расчётов: `core/src/test/kotlin/analyzer/RepoAnalyzerTest.kt` — запускаются командой
+  `./gradlew :core:test` без сборки и запуска CLI.
+- `:cli` — точка входа, аргументы, вывод и код завершения (`cli/src/main/kotlin/analyzer/Main.kt`).
+  Тесты CLI: `cli/src/test/kotlin/analyzer/MainTest.kt`.
+
+`:cli` зависит от `:core`, а не наоборот: CLI использует `analyze()` и модели результата,
+а логике анализа консоль не нужна. Зависимость `implementation`, потому что `:cli` —
+конечное приложение и не отдаёт типы `:core` наружу.
+
+Версии плагина Kotlin и JUnit берутся из каталога `gradle/libs.versions.toml`.
+
+Проверка, что перенос сохранил результат: файлы тестов перенесены без изменений
+(`RepoAnalyzerTest` → `:core`, `MainTest` → `:cli`), все 14 тестов проходят, а `MainTest`
+сравнивает полный текст вывода на примере из четырёх файлов с эталоном. Вывод `run` на
+`examples/sample` совпадает с выводом монолита.
 
 Пример из четырёх файлов лежит в `examples/sample`.
 
@@ -26,14 +40,14 @@ Linux / macOS:
 
 ```bash
 ./gradlew build --console=plain
-./gradlew run --args="examples/sample" --console=plain
+./gradlew :cli:run --args="examples/sample" --console=plain
 ```
 
 Windows (PowerShell):
 
 ```powershell
 .\gradlew.bat build --console=plain
-.\gradlew.bat run --args="examples/sample" --console=plain
+.\gradlew.bat :cli:run --args="examples/sample" --console=plain
 ```
 
 Вывод на примере из четырёх файлов:

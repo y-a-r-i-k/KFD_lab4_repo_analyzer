@@ -1,21 +1,6 @@
+// Корневой проект сам ничего не компилирует.
+// Плагин Kotlin объявлен здесь с apply false, чтобы его версия (из каталога libs)
+// загружалась один раз и была общей для :core и :cli.
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    application
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-dependencies {
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
-}
-
-application {
-    mainClass.set("analyzer.MainKt")
+    alias(libs.plugins.kotlin.jvm) apply false
 }
