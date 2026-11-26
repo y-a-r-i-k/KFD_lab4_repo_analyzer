@@ -64,18 +64,10 @@ private fun shouldEnter(dir: File): Boolean =
  * Считает строки файла. useLines читает UTF-8 и сам закрывает файл.
  * Пустой файл -> 0, "abc" без перевода строки -> 1.
  */
-internal fun countLines(file: File): Int {
-    var count = 0
-    file.useLines { lines ->
-        // Обычный цикл по итератору (в эксперименте со сборкой заменим на lines.count()).
-        val iterator = lines.iterator()
-        while (iterator.hasNext()) {
-            iterator.next()
-            count++
-        }
-    }
-    return count
-}
+internal fun countLines(file: File): Int =
+    // Эксперимент со сборкой: цикл заменён на эквивалентную операцию коллекции.
+    // Сигнатура и результат прежние, меняется только тело функции.
+    file.useLines { lines -> lines.count() }
 
 /** Первый отчёт: группируем по расширению, сортируем расширения по алфавиту. */
 internal fun statsByExtension(files: List<FileLines>): List<ExtensionStats> =

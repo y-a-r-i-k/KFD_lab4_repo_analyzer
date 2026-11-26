@@ -62,3 +62,49 @@ src/A.kt (2)
 src/B.kt (2)
 README.md (0)
 ```
+
+## Ссылки
+
+- Монолит: https://github.com/y-a-r-i-k/KFD_lab4_repo_analyzer/commit/ef98045
+- Модули: https://github.com/y-a-r-i-k/KFD_lab4_repo_analyzer/commit/62648df
+- Успешный прогон CI для ветки `hw/repo-analyzer`: https://github.com/y-a-r-i-k/KFD_lab4_repo_analyzer/actions/runs/45877642490
+
+## Эксперимент со сборкой
+
+Условия: Windows 11, JDK 21, Gradle Wrapper 9.6.0, Kotlin plugin 2.4.20;
+в `gradle.properties` выключены configuration cache, build cache и параллельность.
+
+Порядок:
+
+1. На состоянии «Модули» выполнена `./gradlew build --console=plain` — всё собрано.
+2. Правка внутри `:core` без изменения публичных сигнатур и результата: в `countLines`
+   (`core/src/main/kotlin/analyzer/RepoAnalyzer.kt`) цикл `while` по итератору заменён на
+   `file.useLines { lines -> lines.count() }`. Функция `internal`, её сигнатура не менялась.
+3. Повторена та же команда без `clean`: `./gradlew build --console=plain`.
+
+### Прогноз (записан до правки)
+
+| Задача | Ожидание | Почему |
+|---|---|---|
+| `:core:compileKotlin` | выполнится (без пометки `UP-TO-DATE`) | изменился исходный файл модуля |
+| `:cli:compileKotlin` | `UP-TO-DATE` | исходники `:cli` не менялись, а у `:core` не изменился ABI — публичные сигнатуры прежние; Kotlin-плагин сравнивает снимок ABI зависимостей, а не байты тел функций |
+| `:core:test`, `:cli:test` | выполнятся | у обоих изменился runtime classpath (новые классы `:core`) |
+
+### Фактический результат (из лога после правки)
+
+```text
+> Task :core:compileKotlin
+> Task :cli:compileKotlin UP-TO-DATE
+```
+
+| Задача | Статус |
+|---|---|
+| `:core:compileKotlin` | выполнилась (без пометки) |
+| `:cli:compileKotlin` | `UP-TO-DATE` |
+
+### Вывод
+
+Прогноз совпал. `:core` перекомпилировалась, потому что поменялся её исходник, а `:cli:compileKotlin`
+осталась `UP-TO-DATE`: снаружи `:core` выглядит так же, правка была только внутри тела `internal`-функции,
+а Kotlin-плагин смотрит на ABI зависимости, а не на байты её классов. Тесты обоих модулей при этом
+перезапустились, потому что у них поменялся runtime classpath — в нём лежат новые классы `:core`.
